@@ -25,6 +25,7 @@ import com.syakeapps.twe.jaxrs.model.DiscordWebhookPayload;
 import com.syakeapps.twe.jaxrs.model.DiscordWebhookPayload.Embed;
 import com.syakeapps.twe.jaxrs.model.DiscordWebhookPayload.Embed.Author;
 import com.syakeapps.twe.jaxrs.model.DiscordWebhookPayload.Embed.Field;
+import com.syakeapps.twe.jaxrs.model.SlackWebhookPayload;
 
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -34,6 +35,7 @@ import okhttp3.Response;
 @Path("/streamchanged")
 public class StreamChanged {
     private static final String PROPERTY_KEY_DISCORD_WEBHOOK_ENDPOINT = "TWITCH_WEBHOOK_ENDPOINT";
+    private static final String PROPERTY_KEY_SLACK_WEBHOOK_ENDPOINT = "SLACK_WEBHOOK_ENDPOINT";
     private static final okhttp3.MediaType JSON = okhttp3.MediaType.parse("application/json; charset=utf-8");
     private static final Logger LOGGER = LoggerFactory.getLogger(StreamChanged.class);
 
@@ -46,7 +48,7 @@ public class StreamChanged {
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.TEXT_PLAIN)
-    public String streamChanged(Map<String, Object> requestBody) {
+    public String streamChanged(Map<String, Object> requestBody) throws Exception {
         final List<Map<String, Object>> data = (List<Map<String, Object>>) requestBody.get("data");
 
         try {
@@ -79,7 +81,16 @@ public class StreamChanged {
                 }
             }
         } catch (Exception e) {
-            LOGGER.error("ERROR=>", e);
+            try {
+                String url = System.getenv(PROPERTY_KEY_SLACK_WEBHOOK_ENDPOINT);
+                SlackWebhookPayload payload = new SlackWebhookPayload("twitch-webhook-endpoint",
+                        "Twitchイベントのハンドリング中にエラーが発生しました。\nERROR=>" + e);
+
+                String json = new ObjectMapper().writeValueAsString(payload);
+                post(url, JSON, json);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
         }
 
         return "DONE";
