@@ -88,7 +88,8 @@ public class StreamChanged {
             String json = new ObjectMapper().writeValueAsString(payload);
             try (Response response = post(url, JSON, json)) {
                 if (!response.isSuccessful()) {
-                    LOGGER.error("Failed to notify Slack of error details. UNEXPECTED_RESPONSE=>" + response);
+                    LOGGER.error("Failed to notify Slack of error details. UNEXPECTED_RESPONSE=>" + response
+                            + ", SLACK_PAYLOAD=>" + json);
                 }
             }
         }
