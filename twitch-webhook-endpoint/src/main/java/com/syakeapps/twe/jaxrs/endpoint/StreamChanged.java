@@ -1,8 +1,12 @@
 package com.syakeapps.twe.jaxrs.endpoint;
 
 import java.io.IOException;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import javax.ws.rs.Consumes;
@@ -51,13 +55,17 @@ public class StreamChanged {
                 Map<String, Object> datum = data.get(0);
                 final String userName = (String) datum.get("user_name");
                 final String gameName = (String) datum.get("game_name");
-                final String startAt = (String) datum.get("started_at");
+                final String startAt = ZonedDateTime
+                        .parse((String) datum.get("started_at"),
+                                DateTimeFormatter.ISO_INSTANT.withZone(ZoneId.of("UTC")))
+                        .withZoneSameInstant(ZoneId.of("Asia/Tokyo"))
+                        .format(DateTimeFormatter.ofPattern("M月dd日(E) HH:mm").withLocale(Locale.JAPANESE)).toString();
                 final String userLogin = (String) datum.get("user_login");
                 final String channelUrl = "https://www.twitch.tv/" + userLogin;
 
                 Author author = new Author(userName + " is now streaming");
                 Field playing = new Field("Playing", gameName, true);
-                Field startedAt = new Field("Started at (streamer timezone)", startAt, true);
+                Field startedAt = new Field("Started at (Asia/Tokyo)", startAt, true);
                 Embed embed = new Embed(channelUrl, channelUrl, 6570404, null, author,
                         Arrays.asList(playing, startedAt));
                 DiscordWebhookPayload payload = new DiscordWebhookPayload(userName + "がTwitchで配信を始めました",
