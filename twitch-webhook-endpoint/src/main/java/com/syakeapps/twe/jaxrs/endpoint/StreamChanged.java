@@ -81,15 +81,15 @@ public class StreamChanged {
                 }
             }
         } catch (Exception e) {
-            try {
-                String url = System.getenv(PROPERTY_KEY_SLACK_WEBHOOK_ENDPOINT);
-                SlackWebhookPayload payload = new SlackWebhookPayload("twitch-webhook-endpoint",
-                        "Twitchイベントのハンドリング中にエラーが発生しました。\nERROR=>" + e);
+            String url = System.getenv(PROPERTY_KEY_SLACK_WEBHOOK_ENDPOINT);
+            SlackWebhookPayload payload = new SlackWebhookPayload("twitch-webhook-endpoint",
+                    "Twitchイベントのハンドリング中にエラーが発生しました。\nERROR=>" + e);
 
-                String json = new ObjectMapper().writeValueAsString(payload);
-                post(url, JSON, json);
-            } catch (Exception ex) {
-                ex.printStackTrace();
+            String json = new ObjectMapper().writeValueAsString(payload);
+            try (Response response = post(url, JSON, json)) {
+                if (!response.isSuccessful()) {
+                    LOGGER.error("Failed to notify Slack of error details. UNEXPECTED_RESPONSE=>" + response);
+                }
             }
         }
 
