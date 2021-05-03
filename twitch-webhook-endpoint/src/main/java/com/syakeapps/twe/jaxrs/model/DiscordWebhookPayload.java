@@ -189,7 +189,8 @@ public class DiscordWebhookPayload {
 
             public Field(String name, String value, boolean inline) {
                 this.name = name;
-                this.value = value;
+                setValue(value);
+                // this.value = value;
                 this.inline = inline;
             }
 
@@ -206,7 +207,7 @@ public class DiscordWebhookPayload {
             }
 
             public void setValue(String value) {
-                this.value = value;
+                this.value = value == null ? null : value;
             }
 
             public boolean isInline() {
