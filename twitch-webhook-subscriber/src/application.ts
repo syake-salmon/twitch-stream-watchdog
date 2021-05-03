@@ -1,6 +1,7 @@
 const PROPERTY_KEY_TWITCH_MY_USER_ID: string = 'TWITCH_MY_USER_ID';
 const PROPERTY_KEY_TWITCH_TOKEN: string = 'TWITCH_TOKEN';
 const PROPERTY_KEY_TWITCH_CLIENT_ID: string = 'TWITCH_CLIENT_ID';
+const PROPERTY_KEY_TWITCH_SECRET: string = 'TWITCH_SECRET';
 const PROPERTY_KEY_CALLBACK_URL: string = 'CALLBACK_URL';
 const PROPERTY_KEY_SLACK_WEBHOOK_ENDPOINT: string = 'SLACK_WEBHOOK_ENDPOINT';
 
@@ -12,7 +13,14 @@ function _daily(): void {
     try {
         var token: string = properties.getProperty(PROPERTY_KEY_TWITCH_TOKEN);
         var clientId: string = properties.getProperty(PROPERTY_KEY_TWITCH_CLIENT_ID);
+        var secret: string = properties.getProperty(PROPERTY_KEY_TWITCH_SECRET);
         var userId: string = properties.getProperty(PROPERTY_KEY_TWITCH_MY_USER_ID);
+
+        var isValid: Boolean = isValidToken(token);
+        if (!isValid) {
+            token = generateToken(clientId, secret);
+            properties.setProperty(PROPERTY_KEY_TWITCH_TOKEN, token);
+        }
 
         var users: TwitchUser[] = [];
         users = users.concat(getFollows(token, clientId, userId));
@@ -31,6 +39,48 @@ function _daily(): void {
     }
 
     console.timeEnd('----- _daily -----');
+}
+
+function isValidToken(token: string): Boolean {
+    console.time('----- isValidToken -----');
+
+    var isValid: Boolean = false;
+    if (token !== undefined) {
+        var options: GoogleAppsScript.URL_Fetch.URLFetchRequestOptions = {
+            method: 'get',
+            headers: {
+                Authorization: 'Bearer ' + token
+            },
+            muteHttpExceptions: true
+        };
+        var response: GoogleAppsScript.URL_Fetch.HTTPResponse = callExternalAPI('https://id.twitch.tv/oauth2/validate', options);
+        if (response.getResponseCode() == 200) {
+            isValid = true;
+            console.log('Token is valid. TOKEN=[%s]', token);
+        }
+    }
+
+    console.timeEnd('----- isValidToken -----');
+    return isValid;
+}
+
+function generateToken(clientId: string, secret: string): string {
+    console.time('----- generateToken -----');
+
+    var token: string = '';
+    var endpoint: string = 'https://id.twitch.tv/oauth2/token?client_id=' + clientId + '&client_secret=' + secret + '&grant_type=client_credentials&scope=user:read:follows';
+    var options: GoogleAppsScript.URL_Fetch.URLFetchRequestOptions = {
+        method: 'post',
+        muteHttpExceptions: true
+    };
+    var response: GoogleAppsScript.URL_Fetch.HTTPResponse = callExternalAPI(endpoint, options);
+    if (response.getResponseCode() == 200) {
+        token = JSON.parse(response.getContentText()).access_token;
+        console.log('New token is generated. NEW_TOKEN=[%s]', token);
+    }
+
+    console.timeEnd('----- generateToken -----');
+    return token;
 }
 
 function getFollows(token: string, clientId: string, userId: string): TwitchUser[] {
